@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/navbar'
+import Footer from '@/components/footer'
 
 interface PageParams {
   slug: string
@@ -101,6 +102,7 @@ export default async function JournalDetailPage(props: { params: Promise<PagePar
 
         </div>
       </div>
+      <Footer />
     </>
   )
 }
