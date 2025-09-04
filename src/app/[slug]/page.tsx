@@ -1,46 +1,63 @@
-import { notFound } from 'next/navigation'
-import Navbar from '@/components/navbar'
-import Footer from '@/components/footer'
+import { notFound } from "next/navigation";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 interface PageParams {
-  slug: string
+  slug: string;
 }
 
-export default async function JournalDetailPage(props: { params: Promise<PageParams> } ) {
-  const { slug } = await props.params
-  
+export async function generateStaticParams() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/journals?fields=slug`,
+    { cache: "no-store" }
+  );
+  const data = await res.json();
+
+  return data.data.map((journal: any) => ({
+    slug: journal.slug,
+  }));
+}
+
+export default async function JournalDetailPage({
+  params,
+}: {
+  params: PageParams;
+}) {
+  const { slug } = params;
+
   // Fetch the journal from Strapi by slug
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/journals?filters[slug][$eq]=${slug}&populate=*`,
-    { cache: "no-store" }
-  )
-  const data = await res.json()
+  `${process.env.NEXT_PUBLIC_STRAPI_URL}/api/journals?filters[slug][$eq]=${slug}&populate=*`,
+  { cache: "force-cache" } // or just remove this option
+);
+  const data = await res.json();
 
   if (!data?.data?.length) {
-    notFound()
+    notFound();
   }
 
-  const journal = data.data[0]
-  const { Title, date, content, content2, oneLiner, coverImage } = journal
+  const journal = data.data[0];
+  const { Title, date, content, content2, oneLiner, coverImage } = journal;
 
   // Format date as "Month, Year"
   const formattedDate = new Date(date).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
-  })
+  });
 
   // Convert Strapi rich text blocks into plain text
   const getText = (blocks: any[]) =>
-    blocks?.map((block) =>
-      block.children.map((child: any) => child.text).join("")
-    ).join("\n\n")
+    blocks
+      ?.map((block) =>
+        block.children.map((child: any) => child.text).join("")
+      )
+      .join("\n\n");
 
   return (
     <>
       <Navbar />
       <div className="min-h-screen bg-[#FEFCE4]">
         <div className="mx-auto px-6 md:px-24 py-16 md:py-24">
-
           {/* Header Image */}
           <div className="w-full h-[406px] md:h-[495px] mb-8 rounded-none bg-[#C8C8D0] flex items-center justify-center">
             {coverImage?.[0]?.url && (
@@ -54,7 +71,7 @@ export default async function JournalDetailPage(props: { params: Promise<PagePar
 
           {/* Date */}
           <p className="text-base text-[#C19570] mb-6">
-            {formattedDate.replace(' ',', ')}
+            {formattedDate.replace(" ", ", ")}
           </p>
 
           {/* Title */}
@@ -89,20 +106,16 @@ export default async function JournalDetailPage(props: { params: Promise<PagePar
 
             {/* Right side - Content sections */}
             <div className="space-y-12 max-w-[340px] md:max-w-[550px]">
-              
-
               <div>
-                
                 <p className="text-sm md:text-base text-[#2C2216] leading-relaxed">
                   {getText(content2)}
                 </p>
               </div>
             </div>
           </div>
-
         </div>
       </div>
       <Footer />
     </>
-  )
+  );
 }
